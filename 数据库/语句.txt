@@ -1,0 +1,107 @@
+drop database if exists e_commerce;
+create database if not exists e_commerce default charset utf8mb4;
+use e_commerce;
+select database();
+drop table if exists user;
+create table user(
+    id int unsigned auto_increment primary key comment '编号',
+    username varchar(50) not null unique comment '用户名',
+    password varchar(100) not null comment '密码',
+    role enum('ROLE_BUSINESS','ROLE_CUSTOMER') not null comment '角色',
+    create_time datetime default now() not null comment '创建时间',
+    update_time datetime comment '更新时间',
+    is_deleted tinyint(1) unsigned default 0 not null comment '是否删除'
+)comment '用户';
+insert into user(username, password,role) values ('A','$2a$10$TTAKOdXk.yAAYYGggjd3UuF3D.JnhL8Ps5iDAD1d81dSQklpO3r6q','ROLE_CUSTOMER'),
+                                           ('B','$2a$10$NPbMn3nT0l7df2AH6Gpj..ExYehnSVDArKXkpmkX2lCBdTwx4EjZK','ROLE_BUSINESS');
+
+drop table if exists category;
+create table category(
+    id int unsigned auto_increment primary key comment '编号',
+    name varchar(50) not null unique comment '名称'
+)comment '种类';
+
+drop table if exists goods;
+create table goods(
+    id int unsigned auto_increment primary key comment '编号',
+    user_id int unsigned not null comment '发布商家',
+    category_id int unsigned comment '所属种类',
+    name varchar(50) not null comment '名称',
+    description varchar(300) comment '文字描述',
+    price decimal(8,2) check ( price >= 0 ) not null comment '价格',
+    postal_fee decimal(8,2) check ( postal_fee >= 0 ) not null default 0 comment '邮费',
+    count int unsigned not null comment '库存',
+    sale_count int unsigned not null default 0 comment '已售出数量',
+    create_time datetime default now() not null comment '创建时间',
+    update_time datetime comment '更新时间',
+    constraint goods_fk_user_id foreign key (user_id) references user(id),
+    constraint goods_fk_category_id foreign key (category_id) references category(id)
+)comment '商品';
+
+drop table if exists picture;
+create table picture(
+    id int unsigned auto_increment primary key comment '编号',
+    path varchar(300) not null comment '路径',
+    goods_id int unsigned not null comment '所属商品',
+    is_master tinyint(1) unsigned not null default 0 comment '是否为主图',
+    create_time datetime default now() not null comment '创建时间',
+    update_time datetime comment '更新时间',
+    constraint picture_fk_goods_id foreign key (goods_id) references goods(id)
+)comment '图片';
+
+
+
+drop table if exists address;
+create table address(
+    id int unsigned auto_increment primary key comment '编号',
+    user_id int unsigned not null comment '所属用户',
+    content varchar(100) not null comment '具体地址',
+    receiver_name varchar(50) not null comment '收件人姓名',
+    receiver_tel varchar(50) not null comment '收件人电话',
+    create_time datetime default now() not null comment '创建时间',
+    update_time datetime comment '更新时间',
+    constraint address_fk_user_id foreign key (user_id) references user(id)
+)comment '地址';
+
+drop table if exists shopping_cart;
+create table shopping_cart(
+    id int unsigned auto_increment primary key comment '编号',
+    user_id int unsigned not null comment '用户',
+    goods_id int unsigned not null comment '商品',
+    count int unsigned not null comment '数量',
+    create_time datetime default now() not null comment '创建时间',
+    update_time datetime comment '更新时间',
+    constraint shopping_cart_fk_user_id foreign key (user_id) references user(id),
+    constraint shopping_cart_fk_goods_id foreign key (goods_id) references goods(id)
+)comment '购物车';
+
+drop table if exists `order`;
+create table `order`(
+    id int unsigned auto_increment primary key comment '编号',
+    user_id int unsigned not null comment '所属用户',
+    address_id int unsigned not null comment '地址',
+    price_total decimal(8,2) check ( price_total >= 0 ) not null comment '总价',
+    reduction_total decimal(8,2) check ( reduction_total >= 0 ) not null comment '优惠',
+    postal_fee_total decimal(8,2) check ( postal_fee_total >= 0 ) not null comment '邮费',
+    status enum('未支付','已支付，等待发货','已发货','已签收') not null comment '状态',
+    pay_time datetime comment '创建时间',
+    express_company varchar(50) comment '快递公司名称',
+    express_number VARCHAR(50) comment '快递单号',
+    delivery_time datetime comment '发货时间',
+    receive_time datetime comment '收货时间',
+    create_time datetime default now() not null comment '创建时间',
+    update_time datetime comment '更新时间',
+    constraint order_fk_user_id foreign key (user_id) references user(id),
+    constraint order_fk_address_id foreign key (address_id) references address(id)
+)comment '订单主表';
+
+CREATE TABLE order_detail(
+    id int unsigned auto_increment primary key comment '编号',
+    order_id int unsigned not null comment '所属订单',
+    goods_id int unsigned not null comment '商品',
+    count int unsigned not null comment '数量',
+    create_time datetime default now() not null comment '创建时间',
+    update_time datetime comment '更新时间',
+    constraint order_detail_fk_goods_id foreign key (goods_id) references goods(id),
+    constraint order_detail_fk_order_id foreign key (order_id) references `order`(id)
+)comment '订单详情';
